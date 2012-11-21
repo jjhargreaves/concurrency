@@ -14,6 +14,12 @@ out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
 #define noParticles 3 //overall number of particles threads in the system
+int positions[5] = {0, 3, 6, 9, 11};
+int direction[5] = {1, -1, 1, -1, 1};
+typedef struct {
+	int position;
+	int velocity;
+} intent;
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 // Helper Functions provided for you
@@ -65,28 +71,28 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 	int j; //helper variable
 	cledR <: 1;
 	while (running) {
-	for (int k=0;k<noParticles;k++) {
-		select {
-			case show[k] :> j:
-				if (j<12) display[k] = j; else
-				playSound(20000,20,speaker);
-				break;
-		///////////////////////////////////////////////////////////////////////
-		//
-		// ADD YOUR CODE HERE TO ACT ON BUTTON INPUT
-		//
-		///////////////////////////////////////////////////////////////////////
-			default:
-				break;
+		for (int k=0;k<noParticles;k++) {
+			select {
+				case show[k] :> j:
+					if (j<12) display[k] = j; else
+					playSound(20000,20,speaker);
+					break;
+			///////////////////////////////////////////////////////////////////////
+			//
+			// ADD YOUR CODE HERE TO ACT ON BUTTON INPUT
+			//
+			///////////////////////////////////////////////////////////////////////
+				default:
+					break;
+			}
+		//visualise particles
+			for (int i=0;i<4;i++) {
+				j = 0;
+				for (int k=0;k<noParticles;k++)
+					j += (16<<(display[k]%3))*(display[k]/3==i);
+				toQuadrant[i] <: j;
+			}
 		}
-	//visualise particles
-		for (int i=0;i<4;i++) {
-			j = 0;
-			for (int k=0;k<noParticles;k++)
-				j += (16<<(display[k]%3))*(display[k]/3==i);
-			toQuadrant[i] <: j;
-		}
-	}
 	}
 }
 //READ BUTTONS and send commands to Visualiser
@@ -103,7 +109,7 @@ void buttonListener(in port buttons, chanend toVisualiser) {
 	}
 }
 //PARTICLE...thread to represent a particle - to be replicated noParticle-times
-void particle(chanend left, chanend right, chanend toVisualiser, int startPosition, int startDirection) {
+void particle(chanend left, chanend right, chanend toVisualiser, int startPosition, int startDirection, int id) {
 	unsigned int moveCounter = 0; //overall no of moves performed by particle so far
 	unsigned int position = startPosition; //the current particle position
 	unsigned int attemptedPosition; //the next attempted position after considering move direction
@@ -111,6 +117,43 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	int leftMoveForbidden = 0; //the verdict of the left neighbour if move is allowed
 	int rightMoveForbidden = 0; //the verdict of the right neighbour if move is allowed
 	int currentVelocity = 1; //the current particle velocity
+	int currentPosition = startPosition;
+	int leftAttempt, rightAttempt;
+	intent attempt;
+	toVisualiser <: startPosition;
+	printf("%d\n", id);
+	while(1)
+	{
+		waitMoment(8000000*2);
+		attemptedPosition = ((currentPosition + currentDirection)+12)%12;
+		if(id == 0){
+			left <: attemptedPosition;
+			right <: attemptedPosition;
+			left :> leftAttempt;
+			right :> rightAttempt;
+			if((rightAttempt == attemptedPosition) || (leftAttempt == attemptedPosition))
+				currentDirection = -currentDirection;
+			(currentPosition+=currentDirection+12)%12;
+		} else if(id == (noParticles-2)) {
+			left :> leftAttempt;
+			right :> rightAttempt;
+			if((rightAttempt == attemptedPosition) || (leftAttempt == attemptedPosition))
+				currentDirection = -currentDirection;
+			(currentPosition+=currentDirection+12)%12;
+			left <: currentDirection;
+			right <: currentDirection;
+		} else {
+			right <: attemptedPosition;
+			left :> leftAttempt;
+			right :> rightAttempt;
+			left <: attemptedPosition;
+			if((rightAttempt == attemptedPosition)|| (leftAttempt == attemptedPosition))
+				currentDirection = -currentDirection;
+			(currentPosition+=currentDirection+12)%12;
+		}
+		currentPosition = attemptedPosition;
+		toVisualiser <: currentPosition;
+	}
 ///////////////////////////////////////////////////////////////////////
 //
 // ADD YOUR CODE HERE TO SIMULATE PARTICLE BEHAVIOUR
@@ -133,6 +176,9 @@ int main(void) {
 		//
 		///////////////////////////////////////////////////////////////////////
 		//VISUALISER THREAD
+		par (int k = 0; k<noParticles;k++) {
+			on stdcore[k%4] : particle(neighbours[(k+(noParticles-1))%noParticles], neighbours[(k+1)%noParticles], show[k], positions[k], direction[k], k);
+		}
 		on stdcore[0]: visualiser(buttonToVisualiser,show,quadrant,speaker);
 		//REPLICATION FOR THREADS PERFORMING LED VISUALISATION
 		par (int k=0;k<4;k++) {
