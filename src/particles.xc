@@ -124,7 +124,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	printf("%d\n", id);
 	while(1)
 	{
-		waitMoment(8000000*2);
+		waitMoment(8000000*5);
 		attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 		if(id == 0){
 			left <: attemptedPosition;
@@ -133,15 +133,15 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 			right :> rightAttempt;
 			if((rightAttempt == attemptedPosition) || (leftAttempt == attemptedPosition))
 				currentDirection = -currentDirection;
-			(currentPosition+=currentDirection+12)%12;
-		} else if(id == (noParticles-2)) {
+			currentPosition = (currentPosition + currentDirection +12)%12;
+		} else if(id == (noParticles-1)) {
 			left :> leftAttempt;
 			right :> rightAttempt;
 			if((rightAttempt == attemptedPosition) || (leftAttempt == attemptedPosition))
 				currentDirection = -currentDirection;
-			(currentPosition+=currentDirection+12)%12;
-			left <: currentDirection;
-			right <: currentDirection;
+			currentPosition = (currentPosition + currentDirection +12)%12;
+			left <: currentPosition;
+			right <: currentPosition;;
 		} else {
 			right <: attemptedPosition;
 			left :> leftAttempt;
@@ -149,7 +149,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 			left <: attemptedPosition;
 			if((rightAttempt == attemptedPosition)|| (leftAttempt == attemptedPosition))
 				currentDirection = -currentDirection;
-			(currentPosition+=currentDirection+12)%12;
+			currentPosition = (currentPosition + currentDirection +12)%12;
 		}
 		currentPosition = attemptedPosition;
 		toVisualiser <: currentPosition;
@@ -176,9 +176,12 @@ int main(void) {
 		//
 		///////////////////////////////////////////////////////////////////////
 		//VISUALISER THREAD
-		par (int k = 0; k<noParticles;k++) {
+		/*par (int k = 0; k<noParticles;k++) {
 			on stdcore[k%4] : particle(neighbours[(k+(noParticles-1))%noParticles], neighbours[(k+1)%noParticles], show[k], positions[k], direction[k], k);
-		}
+		}*/
+		on stdcore[0] : particle(neighbours[2], neighbours[0], show[0], positions[0], direction[0], 0);
+		on stdcore[1] : particle(neighbours[0], neighbours[1], show[1], positions[1], direction[1], 1);
+		on stdcore[2] : particle(neighbours[1], neighbours[2], show[2], positions[2], direction[2], 2);
 		on stdcore[0]: visualiser(buttonToVisualiser,show,quadrant,speaker);
 		//REPLICATION FOR THREADS PERFORMING LED VISUALISATION
 		par (int k=0;k<4;k++) {
