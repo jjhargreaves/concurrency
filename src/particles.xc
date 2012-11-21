@@ -13,7 +13,7 @@ out port cledG = PORT_CLOCKLED_SELG;
 out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
-#define noParticles 4 //overall number of particles threads in the system
+#define noParticles 3 //overall number of particles threads in the system
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, -1, -1};
 typedef struct {
@@ -77,16 +77,18 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 					if (j<12) display[k] = j; else
 					playSound(20000,20,speaker);
 					break;
-				case toButtons :> j:
-					break;
-			///////////////////////////////////////////////////////////////////////
-			//
-			// ADD YOUR CODE HERE TO ACT ON BUTTON INPUT
-			//
-			///////////////////////////////////////////////////////////////////////
 				default:
 					break;
 			}
+		}
+		select {
+			case toButtons :> j:
+				for(int i = 0; i < noParticles; i++)
+					show[i] :> j;
+				break;
+			default:
+				break;
+		}
 		//visualise particles
 			for (int i=0;i<4;i++) {
 				j = 0;
@@ -95,7 +97,6 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				toQuadrant[i] <: j;
 			}
 		}
-	}
 }
 //READ BUTTONS and send commands to Visualiser
 void buttonListener(in port buttons, chanend toVisualiser) {
@@ -103,11 +104,7 @@ void buttonListener(in port buttons, chanend toVisualiser) {
 	unsigned int running = 1; //helper variable to determine system shutdown
 	while (running) {
 		buttons when pinsneq(15) :> buttonInput;
-		///////////////////////////////////////////////////////////////////////
-		//
-		// ADD YOUR CODE HERE TO ACT ON BUTTON INPUT
-		//
-		///////////////////////////////////////////////////////////////////////
+		toVisualiser <: buttonInput;
 	}
 }
 //PARTICLE...thread to represent a particle - to be replicated noParticle-times
@@ -120,52 +117,54 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	int rightMoveForbidden = 0; //the verdict of the right neighbour if move is allowed
 	int currentVelocity = 1; //the current particle velocity
 	int currentPosition = startPosition;
-	int leftAttempt, rightAttempt;
+	int leftAttempt, rightAttempt, j;
+	int gameRunning = 1;
 	intent attempt;
 	toVisualiser <: startPosition;
-	while(1)
+	while(gameRunning)
 	{
-		waitMoment(8000000*2);
-		attemptedPosition = ((currentPosition + currentDirection)+12)%12;
-		if(id == 0){
-			left <: attemptedPosition;
-			right <: attemptedPosition;
-			left :> leftAttempt;
-			right :> rightAttempt;
-			//printf("%d %d %d\n", leftAttempt, rightAttempt, attemptedPosition);
-			if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-					|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
-			{
-				currentDirection = -currentDirection;
-				//printf("Changed Direction\n");
-			}
-			currentPosition = (currentPosition + currentDirection +12)%12;
-		} else if(id == (noParticles-1)) {
-			left :> leftAttempt;
-			right :> rightAttempt;
-			if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-								|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition) {
-				currentDirection = -currentDirection;
-			}
-			currentPosition = (currentPosition + currentDirection +12)%12;
-			//attemptedPosition = ((currentPosition + currentDirection)+12)%12;
-			left <: attemptedPosition;
-			right <: attemptedPosition;
-		} else {
-			right <: attemptedPosition;
-			left :> leftAttempt;
-			right :> rightAttempt;
-			left <: attemptedPosition;
-			if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-								|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition) {
-				//printf("Changed Direction\n");
-				currentDirection = -currentDirection;
-			}
-			currentPosition = (currentPosition + currentDirection +12)%12;
+		select {
+			case toVisualiser :> j:
+				if(j == 14)
+					gameRunning = 0;
+				break;
+			default:
+				waitMoment(8000000*2);
+				attemptedPosition = ((currentPosition + currentDirection)+12)%12;
+				if(id == 0){
+					left <: attemptedPosition;
+					right <: attemptedPosition;
+					left :> leftAttempt;
+					right :> rightAttempt;
+					if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
+							|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+						currentDirection = -currentDirection;
+					currentPosition = (currentPosition + currentDirection +12)%12;
+				} else if(id == (noParticles-1)) {
+					left :> leftAttempt;
+					right :> rightAttempt;
+					if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
+										|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+						currentDirection = -currentDirection;
+					currentPosition = (currentPosition + currentDirection +12)%12;
+					left <: attemptedPosition;
+					right <: attemptedPosition;
+				} else {
+					right <: attemptedPosition;
+					left :> leftAttempt;
+					right :> rightAttempt;
+					left <: attemptedPosition;
+					if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
+										|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+						currentDirection = -currentDirection;
+					currentPosition = (currentPosition + currentDirection +12)%12;
+				}
+				toVisualiser <: currentPosition;
+				moveCounter++;
+				break;
 		}
-		//currentPosition = attemptedPosition;
-		toVisualiser <: currentPosition;
 	}
+	printf("Particle has excited\n");
 ///////////////////////////////////////////////////////////////////////
 //
 // ADD YOUR CODE HERE TO SIMULATE PARTICLE BEHAVIOUR
