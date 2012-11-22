@@ -32,7 +32,10 @@ void showLED(out port p, chanend fromVisualiser) {
 	while (running) {
 		select {
 			case fromVisualiser :> lightUpPattern: //read LED pattern from visualiser process
-				p <: lightUpPattern; //send pattern to LEDs
+				if(lightUpPattern != 100)
+					p <: lightUpPattern; //send pattern to LEDs
+				else
+					running = 0;
 				break;
 			default:
 				break;
@@ -78,7 +81,10 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 		select {
 			case toButtons :> j:
 				if(j == 11)
+				{
 					token = 0;
+					toButtons <: 0;
+				}
 				else if (j == 13) {
 					if(!paused)
 						paused = 1;
@@ -129,6 +135,8 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				toQuadrant[i] <: j;
 			}
 		}
+	for (int i=0;i<4;i++)
+		toQuadrant[i] <: 100;
 	printf("Visualiser has excited\n");
 }
 //READ BUTTONS and send commands to Visualiser
@@ -138,7 +146,14 @@ void buttonListener(in port buttons, chanend toVisualiser) {
 	while (running) {
 		buttons when pinsneq(15) :> buttonInput;
 		toVisualiser <: buttonInput;
+		select {
+			case toVisualiser :> running:
+				break;
+			default:
+				break;
+		}
 	}
+	printf("Buttons have exited\n");
 }
 //PARTICLE...thread to represent a particle - to be replicated noParticle-times
 void particle(chanend left, chanend right, chanend toVisualiser, int startPosition, int startDirection, int id) {
@@ -205,6 +220,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 			}
 			moveCounter++;
 	}
+
 	printf("Particle has exited\n");
 ///////////////////////////////////////////////////////////////////////
 //
