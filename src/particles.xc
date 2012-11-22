@@ -13,7 +13,7 @@ out port cledG = PORT_CLOCKLED_SELG;
 out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
-#define noParticles 3 //overall number of particles threads in the system
+#define noParticles 4 //overall number of particles threads in the system
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, -1, -1};
 typedef struct {
@@ -68,26 +68,51 @@ void waitMoment(uint myTime) {
 void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out port speaker) {
 	unsigned int display[noParticles]; //array of ant positions to be displayed, all values 0..11
 	unsigned int running = 1; //helper variable to determine system shutdown
-	int j; //helper variable
+	int j;
+	int paused = 0;
+	int token = 1;//helper variable
+	int noShutDown = 0, noPaused = 0;
 	cledR <: 1;
 	while (running) {
+		select {
+			case toButtons :> j:
+				if(j == 11)
+					token = 0;
+				else if (j == 13) {
+					if(paused)
+						token = 2;
+					if(!paused)
+						paused = 1;
+				}
+				break;
+			default:
+				break;
+		}
 		for (int k=0;k<noParticles;k++) {
 			select {
 				case show[k] :> j:
 					if (j<12) display[k] = j; else
 					playSound(20000,20,speaker);
+					if(!paused || token == 2)
+					{
+						show[k] <: token;
+						noPaused++;
+						if(noPaused == noParticles)
+						{
+							token = 1;
+							paused = 0;
+							noPaused = 0;
+							printf("got here\n");
+						}
+					}
+					if(token == 0)
+						noShutDown++;
+					if(noShutDown == noParticles)
+						running = 0;
 					break;
 				default:
 					break;
 			}
-		}
-		select {
-			case toButtons :> j:
-				for(int i = 0; i < noParticles; i++)
-					show[i] :> j;
-				break;
-			default:
-				break;
 		}
 		//visualise particles
 			for (int i=0;i<4;i++) {
@@ -121,50 +146,51 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	int gameRunning = 1;
 	intent attempt;
 	toVisualiser <: startPosition;
+	toVisualiser :> gameRunning;
 	while(gameRunning)
 	{
-		select {
-			case toVisualiser :> j:
-				if(j == 14)
-					gameRunning = 0;
-				break;
-			default:
-				waitMoment(8000000*2);
-				attemptedPosition = ((currentPosition + currentDirection)+12)%12;
-				if(id == 0){
-					left <: attemptedPosition;
-					right <: attemptedPosition;
-					left :> leftAttempt;
-					right :> rightAttempt;
-					if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-							|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
-						currentDirection = -currentDirection;
-					currentPosition = (currentPosition + currentDirection +12)%12;
-				} else if(id == (noParticles-1)) {
-					left :> leftAttempt;
-					right :> rightAttempt;
-					if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-										|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
-						currentDirection = -currentDirection;
-					currentPosition = (currentPosition + currentDirection +12)%12;
-					left <: attemptedPosition;
-					right <: attemptedPosition;
-				} else {
-					right <: attemptedPosition;
-					left :> leftAttempt;
-					right :> rightAttempt;
-					left <: attemptedPosition;
-					if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-										|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
-						currentDirection = -currentDirection;
-					currentPosition = (currentPosition + currentDirection +12)%12;
-				}
+			waitMoment(8000000*(2));
+			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
+			if(id == 0){
+				left <: attemptedPosition;
+				right <: attemptedPosition;
+				left :> leftAttempt;
+				right :> rightAttempt;
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
+						|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+					currentDirection = -currentDirection;
+				currentPosition = (currentPosition + currentDirection +12)%12;
+			} else if(id == (noParticles-1)) {
+				left :> leftAttempt;
+				right :> rightAttempt;
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
+									|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+					currentDirection = -currentDirection;
+				currentPosition = (currentPosition + currentDirection +12)%12;
+				left <: attemptedPosition;
+				right <: attemptedPosition;
+			} else {
+				right <: attemptedPosition;
+				left :> leftAttempt;
+				right :> rightAttempt;
+				left <: attemptedPosition;
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
+									|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+					currentDirection = -currentDirection;
+				currentPosition = (currentPosition + currentDirection +12)%12;
+			}
+			toVisualiser <: currentPosition;
+			toVisualiser :> gameRunning;
+			if(gameRunning == 2)
+			{
+				printf("Gamerunning = 2\n");
+				currentPosition = startPosition;
 				toVisualiser <: currentPosition;
-				moveCounter++;
-				break;
-		}
+				toVisualiser :> gameRunning;
+			}
+			moveCounter++;
 	}
-	printf("Particle has excited\n");
+	printf("Particle has exited\n");
 ///////////////////////////////////////////////////////////////////////
 //
 // ADD YOUR CODE HERE TO SIMULATE PARTICLE BEHAVIOUR
