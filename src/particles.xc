@@ -69,9 +69,10 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 	unsigned int display[noParticles]; //array of ant positions to be displayed, all values 0..11
 	unsigned int running = 1; //helper variable to determine system shutdown
 	int j;
-	int paused = 0;
+	int paused = 0, reset = 0;
 	int token = 1;//helper variable
 	int noShutDown = 0, noPaused = 0;
+	int restart = 0;
 	cledR <: 1;
 	while (running) {
 		select {
@@ -79,10 +80,13 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				if(j == 11)
 					token = 0;
 				else if (j == 13) {
-					if(paused)
-						token = 2;
 					if(!paused)
 						paused = 1;
+				} else if (j == 14) {
+					if(paused == 2)
+						paused = 0;
+					else if(paused == 1)
+						paused = 2;
 				}
 				break;
 			default:
@@ -93,16 +97,12 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				case show[k] :> j:
 					if (j<12) display[k] = j; else
 					playSound(20000,20,speaker);
-					if(!paused || token == 2)
-					{
+					if(!paused)
 						show[k] <: token;
-						noPaused++;
-						if(noPaused == noParticles)
-						{
-							token = 1;
-							paused = 0;
-							noPaused = 0;
-							printf("got here\n");
+					else {
+						if(paused == 1) {
+							noPaused++;
+							show[k] <: 3;
 						}
 					}
 					if(token == 0)
@@ -113,6 +113,13 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				default:
 					break;
 			}
+			if((noPaused == noParticles) && (paused == 2))
+			{
+				for(int i=0;i<noParticles;i++)
+					show[i] <: 4;
+				noPaused = 0;
+				paused = 0;
+			}
 		}
 		//visualise particles
 			for (int i=0;i<4;i++) {
@@ -122,6 +129,7 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				toQuadrant[i] <: j;
 			}
 		}
+	printf("Visualiser has excited\n");
 }
 //READ BUTTONS and send commands to Visualiser
 void buttonListener(in port buttons, chanend toVisualiser) {
@@ -144,6 +152,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	int currentPosition = startPosition;
 	int leftAttempt, rightAttempt, j;
 	int gameRunning = 1;
+	int paused = 0;
+	int once = 0;
 	intent attempt;
 	toVisualiser <: startPosition;
 	toVisualiser :> gameRunning;
@@ -181,12 +191,17 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 			}
 			toVisualiser <: currentPosition;
 			toVisualiser :> gameRunning;
-			if(gameRunning == 2)
+			if(gameRunning == 3)
 			{
-				printf("Gamerunning = 2\n");
-				currentPosition = startPosition;
-				toVisualiser <: currentPosition;
-				toVisualiser :> gameRunning;
+				while(1)
+				{
+					toVisualiser :> gameRunning;
+					if(gameRunning == 4)
+					{
+						gameRunning = 1;
+						break;
+					}
+				}
 			}
 			moveCounter++;
 	}
