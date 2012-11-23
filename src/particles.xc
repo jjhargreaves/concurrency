@@ -217,6 +217,20 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 			waitMoment(8000000*(2));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
+				/*case left :> leftAttempt:
+						if((leftAttempt == currentPosition))
+							currentDirection = -currentDirection;
+						currentPosition = (currentPosition + currentDirection +12)%12;
+						break;
+					case right :> rightAttempt:
+						if((rightAttempt == currentPosition) || (rightAttempt == attemptedPosition))
+							currentDirection = -currentDirection;
+						currentPosition = (currentPosition + currentDirection +12)%12;
+						break;
+					default:
+						left <: attemptedPosition;
+						right <: attemptedPosition;
+						break;*/
 				left <: attemptedPosition;
 				right <: attemptedPosition;
 				left :> leftAttempt;
