@@ -249,17 +249,17 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				right <: attemptedPosition;
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-						|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition))
 					currentDirection = -currentDirection;
-				currentPosition = (currentPosition + currentDirection +12)%12;
+				if(rightAttempt != attemptedPosition)
+					currentPosition = (currentPosition + currentDirection +12)%12;
 			} else if(id == (noParticles-1)) {
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-									|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition))
 					currentDirection = -currentDirection;
-				currentPosition = (currentPosition + currentDirection +12)%12;
+				if(rightAttempt != attemptedPosition)
+					currentPosition = (currentPosition + currentDirection +12)%12;
 				left <: attemptedPosition;
 				right <: attemptedPosition;
 			} else {
@@ -267,10 +267,10 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				left :> leftAttempt;
 				right :> rightAttempt;
 				left <: attemptedPosition;
-				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-									|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition))
 					currentDirection = -currentDirection;
-				currentPosition = (currentPosition + currentDirection +12)%12;
+				if(rightAttempt != attemptedPosition)
+					currentPosition = (currentPosition + currentDirection +12)%12;
 			}
 			toVisualiser <: currentPosition;
 			toVisualiser :> gameRunning;
