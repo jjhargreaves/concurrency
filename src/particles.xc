@@ -15,16 +15,29 @@ in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
 #define noParticles 3 //overall number of particles threads in the system
 int positions[5] = {0, 3, 6, 9, 12};
-int direction[5] = {-1, 1, -1, -1, -1};
+int direction[5] = {-1, 1, -1, 1, -1};
 typedef struct {
 	int position;
 	int velocity;
 } intent;
-/////////////////////////////////////////////////////////////////////////////////////////
-//
-// Helper Functions provided for you
-//
-/////////////////////////////////////////////////////////////////////////////////////////
+
+void bubbleSort(unsigned int numbers[], int array_size)
+{
+  int i, j, temp;
+
+  for (i = (array_size - 1); i > 0; i--)
+  {
+    for (j = 1; j <= i; j++)
+    {
+      if (numbers[j-1] > numbers[j])
+      {
+        temp = numbers[j-1];
+        numbers[j-1] = numbers[j];
+        numbers[j] = temp;
+      }
+    }
+  }
+}
 //DISPLAYS an LED pattern in one quadrant of the clock LEDs
 void showLED(out port p, chanend fromVisualiser) {
 	unsigned int lightUpPattern;
@@ -110,6 +123,7 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 		position++;
 		pressed = 0;
 	}
+	bubbleSort(display, noParticles);
 	for(int i=0;i<noParticles;i++)
 		show[i] <: display[i];
 	while (running) {
@@ -214,7 +228,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	toVisualiser :> currentPosition;
 	while(gameRunning)
 	{
-			waitMoment(8000000*(2));
+			waitMoment(8000000*(5));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
 				/*case left :> leftAttempt:
