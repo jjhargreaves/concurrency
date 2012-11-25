@@ -1,0 +1,13 @@
+obj/
+.project
+.settings/org.eclipse.cdt.core.prefs
+bin/Debug/particles_Debug.xe
+Makefile
+.build_Debug/particles.d
+.build_Debug/src/particles.xc.d
+.build_Debug/src/particles.xc.o
+.cproject
+src/particles.xc.BASE
+src/particles.xc.LOCAL
+src/particles.xc.REMOTE
+.gitignore
