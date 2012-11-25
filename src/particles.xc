@@ -212,7 +212,7 @@ void buttonListener(in port buttons, chanend toVisualiser) {
 }
 //PARTICLE...thread to represent a particle - to be replicated noParticle-times
 void particle(chanend left, chanend right, chanend toVisualiser, int startPosition, int startDirection, int id) {
-	unsigned int moveCounter = 1; //overall no of moves performed by particle so far
+	unsigned int moveCounter = 0; //overall no of moves performed by particle so far
 	unsigned int position = startPosition; //the current particle position
 	unsigned int attemptedPosition; //the next attempted position after considering move direction
 	int currentDirection = startDirection; //the current direction the particle is moving
@@ -228,7 +228,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	toVisualiser :> currentPosition;
 	while(gameRunning)
 	{
-			waitMoment(8000000*(10));
+			waitMoment(8000000*(5));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
 				/*case left :> leftAttempt:
@@ -245,50 +245,31 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 						left <: attemptedPosition;
 						right <: attemptedPosition;
 						break;*/
-				if((moveCounter %(id+1)) == 0) {
-					left <: attemptedPosition;
-					right <: attemptedPosition;
-				} else {
-					left <: currentPosition-1;
-					right <: currentPosition+1;
-				}
+				left <: attemptedPosition;
+				right <: attemptedPosition;
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-						|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition))
 					currentDirection = -currentDirection;
-				if((moveCounter %(id+1)) == 0)
+				if(rightAttempt != attemptedPosition)
 					currentPosition = (currentPosition + currentDirection +12)%12;
 			} else if(id == (noParticles-1)) {
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-									|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition))
 					currentDirection = -currentDirection;
-				if((moveCounter %(id+1)) == 0) {
+				if(rightAttempt != attemptedPosition)
 					currentPosition = (currentPosition + currentDirection +12)%12;
-					left <: attemptedPosition;
-					right <: attemptedPosition;
-				} else {
-					left <: currentPosition-1;
-					right <: currentPosition+1;
-				}
+				left <: attemptedPosition;
+				right <: attemptedPosition;
 			} else {
-				if(moveCounter %(id+1) == 0) {
-					right <: attemptedPosition;
-					left :> leftAttempt;
-					right :> rightAttempt;
-					left <: attemptedPosition;
-				} else {
-					right <: currentPosition+1;
-					left :> leftAttempt;
-					right :> rightAttempt;
-					left <: currentPosition-1;
-				}
-				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition)
-									|| (rightAttempt == attemptedPosition) || leftAttempt == attemptedPosition)
+				right <: attemptedPosition;
+				left :> leftAttempt;
+				right :> rightAttempt;
+				left <: attemptedPosition;
+				if((rightAttempt == currentPosition) || (leftAttempt == currentPosition))
 					currentDirection = -currentDirection;
-				if(moveCounter %(id+1) == 0)
+				if(rightAttempt != attemptedPosition)
 					currentPosition = (currentPosition + currentDirection +12)%12;
 			}
 			toVisualiser <: currentPosition;
