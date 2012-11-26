@@ -228,7 +228,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	toVisualiser :> currentPosition;
 	while(gameRunning)
 	{
-			waitMoment(8000000*(2));
+			waitMoment(8000000*(5));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
 				/*case left :> leftAttempt:
@@ -254,7 +254,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				}
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if((rightAttempt != currentPosition) || (leftAttempt != currentPosition)) {
+				if(((rightAttempt != currentPosition) || (leftAttempt != attemptedPosition))
+						&& ((leftAttempt != currentPosition) || (rightAttempt!= attemptedPosition))) {
 					if((rightAttempt == currentPosition) && (currentDirection > 0))
 						currentDirection = -currentDirection;
 					if((leftAttempt == currentPosition) && (currentDirection < 0))
@@ -265,7 +266,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 			} else if(id == (noParticles-1)) {
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if((rightAttempt != currentPosition) || (leftAttempt != currentPosition)) {
+				if(((rightAttempt != currentPosition) || (leftAttempt != attemptedPosition))
+						&& ((leftAttempt != currentPosition) || (rightAttempt!= attemptedPosition))) {
 					if((rightAttempt == currentPosition) && (currentDirection > 0))
 						currentDirection = -currentDirection;
 					if((leftAttempt == currentPosition) && (currentDirection < 0))
@@ -295,7 +297,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					right :> rightAttempt;
 					left <: (currentPosition+11)%12;
 				}
-				if((rightAttempt != currentPosition) || (leftAttempt != currentPosition)) {
+				if(((rightAttempt != currentPosition) || (leftAttempt != attemptedPosition))
+					&& ((leftAttempt != currentPosition) || (rightAttempt!= attemptedPosition))) {
 					if((rightAttempt == currentPosition) && (currentDirection > 0))
 						currentDirection = -currentDirection;
 					if((leftAttempt == currentPosition) && (currentDirection < 0))
