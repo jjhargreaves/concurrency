@@ -13,9 +13,11 @@ out port cledG = PORT_CLOCKLED_SELG;
 out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
-#define noParticles 4 //overall number of particles threads in the system
+#define noParticles 4//overall number of particles threads in the system
+#define velocityFlag 1
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, 1, -1};
+//int direction[5] = {-1, -1, 1, 1, -1};
 typedef struct {
 	int position;
 	int velocity;
@@ -228,7 +230,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	toVisualiser :> currentPosition;
 	while(gameRunning)
 	{
-			waitMoment(8000000*(5));
+			waitMoment(8000000*(10));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
 				/*case left :> leftAttempt:
@@ -245,7 +247,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 						left <: attemptedPosition;
 						right <: attemptedPosition;
 						break;*/
-				if((moveCounter%(id+1)) == 0) {
+				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
 					left <: attemptedPosition;
 					right <: attemptedPosition;
 				} else {
@@ -260,8 +262,11 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 						currentDirection = -currentDirection;
 					if((leftAttempt == currentPosition) && (currentDirection < 0))
 						currentDirection = -currentDirection;
-					if((rightAttempt != attemptedPosition) &&((moveCounter%(id+1)) == 0))
+					if((rightAttempt != attemptedPosition) &&((moveCounter%(id+1)) == 0) || (velocityFlag))
 						currentPosition = (currentPosition + currentDirection +12)%12;
+				} else {
+					if((leftAttempt == attemptedPosition) && ((moveCounter%(id+1) == 0) || (velocityFlag)))
+						currentPosition = (currentPosition + 11)%12;
 				}
 			} else if(id == (noParticles-1)) {
 				left :> leftAttempt;
@@ -272,9 +277,9 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 						currentDirection = -currentDirection;
 					if((leftAttempt == currentPosition) && (currentDirection < 0))
 						currentDirection = -currentDirection;
-					if((rightAttempt != attemptedPosition) && ((moveCounter%(id+1)) == 0))
+					if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
 						currentPosition = (currentPosition + currentDirection +12)%12;
-					if(((moveCounter%(id+1)) == 0)){
+					if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
 						left <: attemptedPosition;
 						right <: attemptedPosition;
 					} else {
@@ -282,11 +287,18 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 						right <: (currentPosition+13)%12;
 					}
 				} else {
-					left <: (currentPosition+11)%12;
-					right <: (currentPosition+13)%12;
+					printf("Special Case\n");
+					if((leftAttempt == attemptedPosition) && ((moveCounter%(id+1) == 0) || velocityFlag)) {
+						currentPosition = (currentPosition + 11)%12;
+						left <: currentPosition;
+						right <: currentPosition;
+					} else {
+						left <: (currentPosition+11)%12;
+						right <: (currentPosition+13)%12;
+					}
 				}
 			} else {
-				if((moveCounter%(id+1)) == 0) {
+				if(((moveCounter%(id+1)) == 0) || (velocityFlag)) {
 					right <: attemptedPosition;
 					left :> leftAttempt;
 					right :> rightAttempt;
@@ -303,10 +315,14 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 						currentDirection = -currentDirection;
 					if((leftAttempt == currentPosition) && (currentDirection < 0))
 						currentDirection = -currentDirection;
-					if((rightAttempt != attemptedPosition) && ((moveCounter%(id+1)) == 0))
+					if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
 						currentPosition = (currentPosition + currentDirection +12)%12;
+				} else {
+					if((leftAttempt == attemptedPosition) && ((moveCounter%(id+1) == 0) || velocityFlag))
+						currentPosition = (currentPosition + 11)%12;
 				}
 			}
+			printf("Moving to %d\n", currentPosition);
 			toVisualiser <: currentPosition;
 			toVisualiser :> gameRunning;
 			if(gameRunning == 3)
