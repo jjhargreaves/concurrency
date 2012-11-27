@@ -13,8 +13,8 @@ out port cledG = PORT_CLOCKLED_SELG;
 out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
-#define noParticles 4//overall number of particles threads in the system
-#define velocityFlag 0
+#define noParticles 3//overall number of particles threads in the system
+#define velocityFlag 0 //when set to 1 it turns velocites off
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, 1, -1};
 //int direction[5] = {-1, -1, 1, 1, -1};
@@ -23,6 +23,10 @@ typedef struct {
 	int velocity;
 } intent;
 
+/*
+ * Used to sort the input user positions, so that each led
+ * Has the correct neighbours
+ */
 void bubbleSort(unsigned int numbers[], int array_size)
 {
   int i, j, temp;
@@ -92,6 +96,7 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 	int noShutDown = 0, noPaused = 0;
 	int restart = 0, setup = 1, position = 0, pressed = 1;
 	cledR <: 1;
+	//Reads in user positions, sorts them, and sends them to the particles
 	for(int l = 0 ; l<noParticles; l++) {
 		setup = 1;
 		while(setup) {
@@ -103,6 +108,8 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				default:
 					break;
 			}
+			//Aceepts if 14, and goes anti clockwise,
+			//and clockwise when 11 and 13 repsectively
 			if(j == 11) {
 				position = (position + 11)%12;
 				pressed = 1;
@@ -113,6 +120,8 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				if(pressed)
 					setup = 0;
 			}
+			//Displays currently selected led as well as any
+			//previously entered positions.
 			if (position<12) display[l] = position;
 			for (int i=0;i<4;i++) {
 				j = 0;
@@ -125,11 +134,20 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 		pressed = 0;
 	}
 	bubbleSort(display, noParticles);
+	//Sends all the sorted user start positions to
+	//the particles
 	for(int i=0;i<noParticles;i++)
 		show[i] <: display[i];
 	while (running) {
 		select {
 			case toButtons :> j:
+				//Tells the button listener, particles, and leds to shut down if 11 is pressed
+				//Breaks out of loop so that the Visualiser is shut down. As the particles are
+				//There are two different states the particles can be in when the button is preseed:
+				//A paused state, and a normal running state. Token is passed to particles after
+				//they have sent their position to the user, so setting token to zero tells the
+				//particles to exit and finish the loop. 11 shuts everything down, 13 pauses, and 14
+				//un-pauses.
 				if(j == 11)
 				{
 					toButtons <: 0;
@@ -156,12 +174,17 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 		}
 		for (int k=0;k<noParticles;k++) {
 			select {
+				//Only sends tokens to the user when the user has sent something to the particle
+				//Thus making sure that we can't send something to the particle when it's trying
+				//to send us something.
 				case show[k] :> j:
 					if (j<12) display[k] = j; else
 					playSound(20000,20,speaker);
 					if(!paused)
 						show[k] <: token;
 					else {
+						//This is to make sure that the visualiser keeps sending tokens to the particles
+						//until all of them are pauseed.
 						if(paused == 1) {
 							noPaused++;
 							show[k] <: 3;
@@ -169,12 +192,16 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 					}
 					if(token == 0)
 						noShutDown++;
+					//Can only end the loop when all particles have been sent the shutdown token
 					if(noShutDown == noParticles)
 						running = 0;
 					break;
 				default:
 					break;
 			}
+			//This means that the user has pressed start, and all of the 'pause' tokens
+			//have finished sending to the particles, so theyappropriate 'resume' tokens
+			//are sent to the particles
 			if((noPaused == noParticles) && (paused == 2))
 			{
 				for(int i=0;i<noParticles;i++)
@@ -229,7 +256,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	toVisualiser :> currentPosition;
 	while(gameRunning)
 	{
-			waitMoment(8000000*(10));
+			waitMoment(8000000*(2));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
 				/*case left :> leftAttempt:
@@ -255,45 +282,27 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				}
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if(((rightAttempt != currentPosition) || (leftAttempt != attemptedPosition))
-						&& ((leftAttempt != currentPosition) || (rightAttempt!= attemptedPosition))) {
-					if((rightAttempt == currentPosition) && (currentDirection > 0))
-						currentDirection = -currentDirection;
-					if((leftAttempt == currentPosition) && (currentDirection < 0))
-						currentDirection = -currentDirection;
-					if((rightAttempt != attemptedPosition) &&((moveCounter%(id+1)) == 0) || (velocityFlag))
-						currentPosition = (currentPosition + currentDirection +12)%12;
-				} else {
-					/*if((leftAttempt == attemptedPosition) && ((moveCounter%(id+1) == 0) || (velocityFlag)))
-						currentPosition = (currentPosition + 11)%12;*/
-				}
+				if((rightAttempt == currentPosition) && (currentDirection > 0))
+					currentDirection = -currentDirection;
+				if((leftAttempt == currentPosition) && (currentDirection < 0))
+					currentDirection = -currentDirection;
+				if((rightAttempt != attemptedPosition) &&((moveCounter%(id+1)) == 0) || (velocityFlag))
+					currentPosition = (currentPosition + currentDirection +12)%12;
 			} else if(id == (noParticles-1)) {
 				left :> leftAttempt;
 				right :> rightAttempt;
-				if(((rightAttempt != currentPosition) || (leftAttempt != attemptedPosition))
-						&& ((leftAttempt != currentPosition) || (rightAttempt!= attemptedPosition))) {
-					if((rightAttempt == currentPosition) && (currentDirection > 0))
-						currentDirection = -currentDirection;
-					if((leftAttempt == currentPosition) && (currentDirection < 0))
-						currentDirection = -currentDirection;
-					if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
-						currentPosition = (currentPosition + currentDirection +12)%12;
-					if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
-						left <: attemptedPosition;
-						right <: attemptedPosition;
-					} else {
-						left <: (currentPosition+11)%12;
-						right <: (currentPosition+13)%12;
-					}
+				if((rightAttempt == currentPosition) && (currentDirection > 0))
+					currentDirection = -currentDirection;
+				if((leftAttempt == currentPosition) && (currentDirection < 0))
+					currentDirection = -currentDirection;
+				if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
+					currentPosition = (currentPosition + currentDirection +12)%12;
+				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
+					left <: attemptedPosition;
+					right <: attemptedPosition;
 				} else {
-					if((leftAttempt == attemptedPosition) && ((moveCounter%(id+1) == 0) || velocityFlag)) {
-						//currentPosition = (currentPosition + 11)%12;
-						left <: currentPosition;
-						right <: currentPosition;
-					} else {
-						left <: (currentPosition+11)%12;
-						right <: (currentPosition+13)%12;
-					}
+					left <: (currentPosition+11)%12;
+					right <: (currentPosition+13)%12;
 				}
 			} else {
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)) {
@@ -307,18 +316,12 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					right :> rightAttempt;
 					left <: (currentPosition+11)%12;
 				}
-				if(((rightAttempt != currentPosition) || (leftAttempt != attemptedPosition))
-					&& ((leftAttempt != currentPosition) || (rightAttempt!= attemptedPosition))) {
-					if((rightAttempt == currentPosition) && (currentDirection > 0))
-						currentDirection = -currentDirection;
-					if((leftAttempt == currentPosition) && (currentDirection < 0))
-						currentDirection = -currentDirection;
-					if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
-						currentPosition = (currentPosition + currentDirection +12)%12;
-				} else {
-					/*if((leftAttempt == attemptedPosition) && ((moveCounter%(id+1) == 0) || velocityFlag))
-						currentPosition = (currentPosition + 11)%12;*/
-				}
+				if((rightAttempt == currentPosition) && (currentDirection > 0))
+					currentDirection = -currentDirection;
+				if((leftAttempt == currentPosition) && (currentDirection < 0))
+					currentDirection = -currentDirection;
+				if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
+					currentPosition = (currentPosition + currentDirection +12)%12;
 			}
 			toVisualiser <: currentPosition;
 			toVisualiser :> gameRunning;
