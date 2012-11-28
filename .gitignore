@@ -16,3 +16,11 @@ src/particles.xc.BACKUP.7100.xc
 src/particles.xc.BASE.7100.xc
 src/particles.xc.LOCAL.7100.xc
 src/particles.xc.REMOTE.7100.xc
+.build_Debug/particles.xc.BACKUP.7100.d
+.build_Debug/particles.xc.BASE.7100.d
+.build_Debug/particles.xc.LOCAL.7100.d
+.build_Debug/particles.xc.REMOTE.7100.d
+.build_Debug/src/particles.xc.BACKUP.7100.xc.d
+.build_Debug/src/particles.xc.BASE.7100.xc.d
+.build_Debug/src/particles.xc.LOCAL.7100.xc.d
+.build_Debug/src/particles.xc.REMOTE.7100.xc.d
