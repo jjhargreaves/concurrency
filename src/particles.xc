@@ -15,8 +15,8 @@ out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
 
-#define noParticles 5 //overall number of particles threads in the system
-#define velocityFlag 1 //when set to 1 it turns velocites off
+#define noParticles 4 //overall number of particles threads in the system
+#define velocityFlag 0 //when set to 1 it turns velocites off
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, 1, -1};
 
@@ -263,6 +263,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	int currentVelocity = 1; //the current particle velocity
 	int currentPosition = startPosition;
 	int leftAttempt, rightAttempt, j;
+	int move = 0;
 	int gameRunning = 1;
 	int paused = 0;
 	int once = 0;
@@ -295,7 +296,6 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-
 				if((((moveCounter%(id+1)) == 0) || (velocityFlag)) && directionChanged == 0)
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
@@ -313,12 +313,10 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-
-				if(( (((moveCounter%(id+1)) == 0) || (velocityFlag))) && directionChanged == 0)
+				if((rightAttempt != attemptedPosition) && (leftAttempt != attemptedPosition) && ( (((moveCounter%(id+1)) == 0) || (velocityFlag))) && directionChanged == 0)
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
-
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
 					left <: attemptedPosition;
 					right <: attemptedPosition;
@@ -349,8 +347,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-
-				if((((moveCounter%(id+1)) == 0) || velocityFlag) && directionChanged == 0)
+				if((leftAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || velocityFlag) && directionChanged == 0)
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
