@@ -403,6 +403,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				//Receive any attempted moves from the particles to the left and right
 				left :> leftIntent;
 				right :> rightIntent;
+
+				//Receive any attempted moves from the particles to the left and right
 				leftAttempt = leftIntent.attempt;
 				rightAttempt = rightIntent.attempt;
 
@@ -429,6 +431,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				 */
 
 				if((((moveCounter%(id+1)) == 0) || (velocityFlag)) && (directionChanged == 0) && (attemptedPosition != rightIntent.position) && (attemptedPosition != leftIntent.position))
+
+				if(((moveCounter%(id+1)) == 0) || velocityFlag) && (directionChanged == 0))
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
@@ -438,6 +442,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				left :> leftIntent;
 				right :> rightIntent;
 
+				//Receive any attempted moves from the particles to the left and right
 				leftAttempt  = leftIntent.attempt;
 				rightAttempt = rightIntent.attempt;
 
@@ -520,6 +525,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				 * then we need to change our direction
 				 */
 
+
 				if((rightAttempt == currentPosition) && (currentDirection > 0))
 				{
 					currentDirection = -currentDirection;
@@ -542,6 +548,15 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 
 				if((leftAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || velocityFlag) && (directionChanged == 0)
 						&& (attemptedPosition != rightIntent.position) && (attemptedPosition != leftIntent.position))
+
+				/* This if statement checks:
+				 * 	1. That there isn't an attempt from another channel (leftAttempt) to the position we're attempting
+				 * 	   to move into.
+				 * 	2. Count the number of moves that a particle has made to allow for velocities
+				 * 	3. Check that we have enabled velocities using the velocityFlag
+				 * 	4. Check that during this move the particle hasn't already changed direction
+				 */
+
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
