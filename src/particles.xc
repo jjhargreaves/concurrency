@@ -8,20 +8,22 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <platform.h>
+
 out port cled[4] = {PORT_CLOCKLED_0,PORT_CLOCKLED_1,PORT_CLOCKLED_2,PORT_CLOCKLED_3};
 out port cledG = PORT_CLOCKLED_SELG;
 out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
-#define noParticles 3//overall number of particles threads in the system
+
+#define noParticles 4//overall number of particles threads in the system
 #define velocityFlag 0 //when set to 1 it turns velocites off
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, 1, -1};
-//int direction[5] = {-1, -1, 1, 1, -1};
+
 typedef struct {
 	int position;
 	int velocity;
-} intent;
+} intention;
 
 /*
  * Used to sort the input user positions, so that each led
@@ -43,6 +45,7 @@ void bubbleSort(unsigned int numbers[], int array_size)
     }
   }
 }
+
 //DISPLAYS an LED pattern in one quadrant of the clock LEDs
 void showLED(out port p, chanend fromVisualiser) {
 	unsigned int lightUpPattern;
@@ -60,6 +63,7 @@ void showLED(out port p, chanend fromVisualiser) {
 		}
 	}
 }
+
 //PLAYS a short sound (pls use with caution and consideration to other students in the labs!)
 void playSound(unsigned int wavelength, int duration, out port speaker) {
 	timer tmr;
@@ -90,7 +94,7 @@ void waitMoment(uint myTime) {
 void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out port speaker) {
 	unsigned int display[noParticles]; //array of ant positions to be displayed, all values 0..11
 	unsigned int running = 1; //helper variable to determine system shutdown
-	int j;
+	int button;
 	int paused = 0, reset = 0;
 	int token = 1;//helper variable
 	int noShutDown = 0, noPaused = 0;
@@ -101,46 +105,49 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 		setup = 1;
 		while(setup) {
 			waitMoment(16000000);
-			j = 0;
+			button = 0;
 			select {
-				case toButtons :> j:
+				case toButtons :> button:
 					break;
 				default:
 					break;
 			}
-			//Aceepts if 14, and goes anti clockwise,
-			//and clockwise when 11 and 13 repsectively
-			if(j == 11) {
+			//Moves a particle into position with B (clockwise) and C (anti-clockwise)
+			//Pressing button A places a particle in a certain position
+			if(button == 11) {
 				position = (position + 11)%12;
 				pressed = 1;
-			} else if(j == 13) {
+			} else if(button == 13) {
 				pressed = 1;
 				position = (position + 13)%12;
-			} else if (j == 14) {
+			} else if (button == 14) {
 				if(pressed)
 					setup = 0;
 			}
+
 			//Displays currently selected led as well as any
 			//previously entered positions.
 			if (position<12) display[l] = position;
 			for (int i=0;i<4;i++) {
-				j = 0;
+				button = 0;
 				for (int k=0;k<=l;k++)
-					j += (16<<(display[k]%3))*(display[k]/3==i);
-				toQuadrant[i] <: j;
+					button += (16<<(display[k]%3))*(display[k]/3==i);
+				toQuadrant[i] <: button;
 			}
 		}
 		position++;
 		pressed = 0;
 	}
 	bubbleSort(display, noParticles);
+
 	//Sends all the sorted user start positions to
 	//the particles
 	for(int i=0;i<noParticles;i++)
 		show[i] <: display[i];
+
 	while (running) {
 		select {
-			case toButtons :> j:
+			case toButtons :> button:
 				//Tells the button listener, particles, and leds to shut down if 11 is pressed
 				//Breaks out of loop so that the Visualiser is shut down. As the particles are
 				//There are two different states the particles can be in when the button is preseed:
@@ -148,7 +155,7 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				//they have sent their position to the user, so setting token to zero tells the
 				//particles to exit and finish the loop. 11 shuts everything down, 13 pauses, and 14
 				//un-pauses.
-				if(j == 11)
+				if(button == 11)
 				{
 					toButtons <: 0;
 					if(!paused) {
@@ -158,17 +165,19 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 							show[i] <: 0;
 						running = 0;
 					}
-				}
-				else if (j == 13) {
-					if(!paused)
+				} else if (button == 13) {
+					if(paused == 0)
+					{
 						paused = 1;
-				} else if (j == 14) {
+					}
+				} else if (button == 14) {
 					if(paused == 2)
 						paused = 0;
 					else if(paused == 1)
 						paused = 2;
 				}
 				break;
+
 			default:
 				break;
 		}
@@ -177,9 +186,12 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 				//Only sends tokens to the user when the user has sent something to the particle
 				//Thus making sure that we can't send something to the particle when it's trying
 				//to send us something.
-				case show[k] :> j:
-					if (j<12) display[k] = j; else
-					playSound(20000,20,speaker);
+				case show[k] :> button:
+					if (button < 12)
+						display[k] = button;
+					else
+						playSound(20000,20,speaker);
+
 					if(!paused)
 						show[k] <: token;
 					else {
@@ -200,7 +212,7 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 					break;
 			}
 			//This means that the user has pressed start, and all of the 'pause' tokens
-			//have finished sending to the particles, so theyappropriate 'resume' tokens
+			//have finished sending to the particles, so the appropriate 'resume' tokens
 			//are sent to the particles
 			if((noPaused == noParticles) && (paused == 2))
 			{
@@ -212,15 +224,16 @@ void visualiser(chanend toButtons, chanend show[], chanend toQuadrant[], out por
 		}
 		//visualise particles
 			for (int i=0;i<4;i++) {
-				j = 0;
+				button = 0;
 				for (int k=0;k<noParticles;k++)
-					j += (16<<(display[k]%3))*(display[k]/3==i);
-				toQuadrant[i] <: j;
+					button += (16<<(display[k]%3))*(display[k]/3==i);
+				toQuadrant[i] <: button;
 			}
 		}
 	for (int i=0;i<4;i++)
 		toQuadrant[i] <: 100;
-	printf("Visualiser has excited\n");
+
+	printf("Visualiser has exited\n");
 }
 //READ BUTTONS and send commands to Visualiser
 void buttonListener(in port buttons, chanend toVisualiser) {
@@ -238,6 +251,7 @@ void buttonListener(in port buttons, chanend toVisualiser) {
 	}
 	printf("Buttons have exited\n");
 }
+
 //PARTICLE...thread to represent a particle - to be replicated noParticle-times
 void particle(chanend left, chanend right, chanend toVisualiser, int startPosition, int startDirection, int id) {
 	unsigned int moveCounter = 1; //overall no of moves performed by particle so far
@@ -252,27 +266,15 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	int gameRunning = 1;
 	int paused = 0;
 	int once = 0;
-	intent attempt;
+	int directionChanged = 0;
+	intention attempt;
 	toVisualiser :> currentPosition;
 	while(gameRunning)
 	{
+			directionChanged = 0;
 			waitMoment(8000000*(2));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
-				/*case left :> leftAttempt:
-						if((leftAttempt == currentPosition))
-							currentDirection = -currentDirection;
-						currentPosition = (currentPosition + currentDirection +12)%12;
-						break;
-					case right :> rightAttempt:
-						if((rightAttempt == currentPosition) || (rightAttempt == attemptedPosition))
-							currentDirection = -currentDirection;
-						currentPosition = (currentPosition + currentDirection +12)%12;
-						break;
-					default:
-						left <: attemptedPosition;
-						right <: attemptedPosition;
-						break;*/
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
 					left <: attemptedPosition;
 					right <: attemptedPosition;
@@ -283,20 +285,40 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				left :> leftAttempt;
 				right :> rightAttempt;
 				if((rightAttempt == currentPosition) && (currentDirection > 0))
+				{
+					directionChanged = 1;
 					currentDirection = -currentDirection;
+				}
+
 				if((leftAttempt == currentPosition) && (currentDirection < 0))
+				{
 					currentDirection = -currentDirection;
-				if((rightAttempt != attemptedPosition) &&((moveCounter%(id+1)) == 0) || (velocityFlag))
+					directionChanged = 1;
+				}
+
+				if(((rightAttempt != attemptedPosition) &&((moveCounter%(id+1)) == 0) || (velocityFlag)) && directionChanged == 0)
+				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
+				}
 			} else if(id == (noParticles-1)) {
 				left :> leftAttempt;
 				right :> rightAttempt;
 				if((rightAttempt == currentPosition) && (currentDirection > 0))
+				{
 					currentDirection = -currentDirection;
+					directionChanged = 1;
+				}
 				if((leftAttempt == currentPosition) && (currentDirection < 0))
+				{
 					currentDirection = -currentDirection;
-				if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
+					directionChanged = 1;
+				}
+
+				if(((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag))) && directionChanged == 0)
+				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
+				}
+
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
 					left <: attemptedPosition;
 					right <: attemptedPosition;
@@ -317,11 +339,21 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					left <: (currentPosition+11)%12;
 				}
 				if((rightAttempt == currentPosition) && (currentDirection > 0))
+				{
 					currentDirection = -currentDirection;
+					directionChanged = 1;
+				}
+
 				if((leftAttempt == currentPosition) && (currentDirection < 0))
+				{
 					currentDirection = -currentDirection;
-				if((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag)))
+					directionChanged = 1;
+				}
+
+				if(((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag))) && directionChanged == 0)
+				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
+				}
 			}
 			toVisualiser <: currentPosition;
 			toVisualiser :> gameRunning;
@@ -338,11 +370,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	}
 
 	printf("Particle has exited\n");
-///////////////////////////////////////////////////////////////////////
-//
-// ADD YOUR CODE HERE TO SIMULATE PARTICLE BEHAVIOUR
-//
-///////////////////////////////////////////////////////////////////////
+
 }
 //MAIN PROCESS defining channels, orchestrating and starting the threads
 int main(void) {
@@ -354,18 +382,10 @@ int main(void) {
 	par{
 	//BUTTON LISTENER THREAD
 		on stdcore[0]: buttonListener(buttons,buttonToVisualiser);
-		///////////////////////////////////////////////////////////////////////
-		//
-		// ADD YOUR CODE HERE TO REPLICATE PARTICLE THREADS particle(…)
-		//
-		///////////////////////////////////////////////////////////////////////
 		//VISUALISER THREAD
 		par (int k = 0; k<noParticles;k++) {
 			on stdcore[k%4] : particle(neighbours[(k+(noParticles-1))%noParticles], neighbours[k], show[k], positions[k], direction[k], k);
 		}
-		/*on stdcore[0] : particle(neighbours[2], neighbours[0], show[0], positions[0], direction[0], 0);
-		on stdcore[1] : particle(neighbours[0], neighbours[1], show[1], positions[1], direction[1], 1);
-		on stdcore[2] : particle(neighbours[1], neighbours[2], show[2], positions[2], direction[2], 2);*/
 		on stdcore[0]: visualiser(buttonToVisualiser,show,quadrant,speaker);
 		//REPLICATION FOR THREADS PERFORMING LED VISUALISATION
 		par (int k=0;k<4;k++) {
