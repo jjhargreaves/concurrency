@@ -273,7 +273,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	while(gameRunning)
 	{
 			directionChanged = 0;
-			waitMoment(8000000*(2));
+			waitMoment(8000000*(15));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
@@ -296,7 +296,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-				if((((moveCounter%(id+1)) == 0) || (velocityFlag)) && directionChanged == 0)
+				if((((moveCounter%(id+1)) == 0) || (velocityFlag)) && (directionChanged == 0))
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
@@ -341,7 +341,6 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-
 				if((leftAttempt == currentPosition) && (currentDirection < 0))
 				{
 					currentDirection = -currentDirection;
