@@ -15,8 +15,8 @@ out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
 
-#define noParticles 4//overall number of particles threads in the system
-#define velocityFlag 0 //when set to 1 it turns velocites off
+#define noParticles 5 //overall number of particles threads in the system
+#define velocityFlag 1 //when set to 1 it turns velocites off
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, 1, -1};
 
@@ -296,7 +296,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					directionChanged = 1;
 				}
 
-				if(((rightAttempt != attemptedPosition) &&((moveCounter%(id+1)) == 0) || (velocityFlag)) && directionChanged == 0)
+				if((((moveCounter%(id+1)) == 0) || (velocityFlag)) && directionChanged == 0)
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
@@ -314,7 +314,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					directionChanged = 1;
 				}
 
-				if(((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag))) && directionChanged == 0)
+				if(( (((moveCounter%(id+1)) == 0) || (velocityFlag))) && directionChanged == 0)
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
@@ -350,7 +350,7 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					directionChanged = 1;
 				}
 
-				if(((rightAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || (velocityFlag))) && directionChanged == 0)
+				if((((moveCounter%(id+1)) == 0) || velocityFlag) && directionChanged == 0)
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
