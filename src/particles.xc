@@ -15,14 +15,14 @@ out port cledR = PORT_CLOCKLED_SELR;
 in port buttons = PORT_BUTTON;
 out port speaker = PORT_SPEAKER;
 
-#define noParticles 3 //overall number of particles threads in the system
-#define velocityFlag 1 //when set to 1 it turns velocites off
+#define noParticles 5 //overall number of particles threads in the system
+#define velocityFlag 0 //when set to 1 it turns velocites off
 int positions[5] = {0, 3, 6, 9, 12};
 int direction[5] = {-1, 1, -1, -1, -1};
 
 typedef struct {
 	int attempt;
-	int direction;
+	int position;
 	int velocity;
 } intention;
 
@@ -269,27 +269,29 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 	int paused = 0;
 	int once = 0;
 	int directionChanged = 0;
+	int temporaryCurrentPosition = currentPosition;
 	intention leftIntent, rightIntent, temp;
 	toVisualiser :> currentPosition;
 	while(gameRunning)
 	{
+			temporaryCurrentPosition = currentPosition;
 			directionChanged = 0;
-			waitMoment(8000000*(20));
+			waitMoment(8000000*(1));
 			attemptedPosition = ((currentPosition + currentDirection)+12)%12;
 			if(id == 0){
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
 					rightIntent.velocity = id;
-					rightIntent.direction = currentDirection;
+					rightIntent.position = temporaryCurrentPosition;
 					rightIntent.attempt = attemptedPosition;
 					left <: rightIntent;
 					right <: rightIntent;
 				} else {
 					rightIntent.velocity = id;
 					rightIntent.attempt = (currentPosition+13)%12;
-					rightIntent.direction = 1;
+					rightIntent.position = temporaryCurrentPosition;
 					leftIntent.velocity = id;
 					leftIntent.attempt = (currentPosition+11)%12;
-					leftIntent.direction = -1;
+					leftIntent.position = temporaryCurrentPosition;
 					left <: leftIntent;
 					right <: rightIntent;
 				}
@@ -307,7 +309,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-				if((((moveCounter%(id+1)) == 0) || (velocityFlag)) && (directionChanged == 0))
+				if((((moveCounter%(id+1)) == 0) || (velocityFlag)) && (directionChanged == 0) && (attemptedPosition != rightIntent.position)
+						&& (attemptedPosition != leftIntent.position))
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
@@ -326,30 +329,31 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-				if((rightAttempt != attemptedPosition) && (leftAttempt != attemptedPosition) && ( (((moveCounter%(id+1)) == 0) || (velocityFlag))) && (directionChanged == 0))
+				if((rightAttempt != attemptedPosition) && (leftAttempt != attemptedPosition) && ( (((moveCounter%(id+1)) == 0) || (velocityFlag))) && (directionChanged == 0)
+						&&(attemptedPosition != rightIntent.position) && (attemptedPosition != leftIntent.position))
 				{
 					currentPosition = (currentPosition + currentDirection +12)%12;
 				}
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)){
 					rightIntent.velocity = id;
-					rightIntent.direction = currentDirection;
+					rightIntent.position = temporaryCurrentPosition;
 					rightIntent.attempt = attemptedPosition;
 					left <: rightIntent;
 					right <: rightIntent;
 				} else {
 					rightIntent.velocity = id;
 					rightIntent.attempt = (currentPosition+13)%12;
-					rightIntent.direction = 1;
+					rightIntent.position = temporaryCurrentPosition;
 					leftIntent.velocity = id;
 					leftIntent.attempt = (currentPosition+11)%12;
-					leftIntent.direction = -1;
+					leftIntent.position = temporaryCurrentPosition;
 					left <: leftIntent;
 					right <: rightIntent;
 				}
 			} else {
 				if(((moveCounter%(id+1)) == 0) || (velocityFlag)) {
 					rightIntent.velocity = id;
-					rightIntent.direction = currentDirection;
+					rightIntent.position = temporaryCurrentPosition;
 					rightIntent.attempt = attemptedPosition;
 					right <: rightIntent;
 					left :> leftIntent;
@@ -359,10 +363,10 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 				} else {
 					rightIntent.velocity = id;
 					rightIntent.attempt = (currentPosition+13)%12;
-					rightIntent.direction = 1;
+					rightIntent.position = temporaryCurrentPosition;
 					leftIntent.velocity = id;
 					leftIntent.attempt = (currentPosition+11)%12;
-					leftIntent.direction = -1;
+					leftIntent.position = temporaryCurrentPosition;
 					right <: rightIntent;
 					left :> temp;
 					right :> rightIntent;
@@ -382,7 +386,8 @@ void particle(chanend left, chanend right, chanend toVisualiser, int startPositi
 					currentDirection = -currentDirection;
 					directionChanged = 1;
 				}
-				if((leftAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || velocityFlag) && directionChanged == 0)
+				if((leftAttempt != attemptedPosition) && (((moveCounter%(id+1)) == 0) || velocityFlag) && (directionChanged == 0)
+						&&(attemptedPosition != rightIntent.position) && (attemptedPosition != leftIntent.position))
 				{
 					//printf("id %d trying to move\n", id);
 					currentPosition = (currentPosition + currentDirection +12)%12;

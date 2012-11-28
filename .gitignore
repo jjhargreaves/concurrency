@@ -11,3 +11,4 @@ src/particles.xc.BASE
 src/particles.xc.LOCAL
 src/particles.xc.REMOTE
 .gitignore
+src/particles.xc.orig
