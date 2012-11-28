@@ -12,3 +12,7 @@ src/particles.xc.LOCAL
 src/particles.xc.REMOTE
 .gitignore
 src/particles.xc.orig
+src/particles.xc.BACKUP.7100.xc
+src/particles.xc.BASE.7100.xc
+src/particles.xc.LOCAL.7100.xc
+src/particles.xc.REMOTE.7100.xc
